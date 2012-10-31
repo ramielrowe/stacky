@@ -1,6 +1,9 @@
+#!/usr/bin/env python
+
 import os
 import re
 import requests
+import signal
 import sys
 import time
 
@@ -8,6 +11,10 @@ import prettytable as pt
 
 
 STACKTACH = os.environ['STACKTACH_URL']
+
+
+def signal_handler(signal, frame):
+    sys.exit(0)
 
 
 def _check(response):
@@ -65,6 +72,9 @@ hosts   - list all host names"""
     sys.exit(0)
 
 def dump_results(results):
+    if not results:
+        return
+
     title = results.pop(0)
     if not results:
         print "No results"
@@ -74,6 +84,15 @@ def dump_results(results):
     for x in results:
         t.add_row(x)
     print str(t)
+
+
+def safe_arg(index, default=None):
+    if len(sys.argv) <= index:
+        if not default:
+            print "Missing parameter"
+            sys.exit(1)
+        return default
+    return sys.argv[index]
 
 
 cmd = sys.argv[1]
@@ -87,14 +106,16 @@ if cmd == 'hosts':
     dump_results(get_host_names())
 
 if cmd == 'uuid':
-    uuid = sys.argv[2]
+    uuid = safe_arg(2)
     print "Events related to", uuid
     dump_results(related_to_uuid(uuid))
     dump_results(show_timings_for_uuid(uuid))
 
 if cmd == 'timings':
-    name = sys.argv[2]
-    r = _check(requests.get(STACKTACH + "/stacky/timings/%s" % name))
+    name = safe_arg(2)
+    params = {'name' : name}
+    r = _check(requests.get(STACKTACH + "/stacky/timings/%s" % name,
+                            params=params))
     dump_results(r.json)
 
 if cmd == 'summary':
@@ -102,13 +123,13 @@ if cmd == 'summary':
     dump_results(r.json)
 
 if cmd == 'request':
-    request_id = sys.argv[2]
+    request_id = safe_arg(2)
     params = {'request_id': request_id}
     r = _check(requests.get(STACKTACH + "/stacky/request", params=params))
     dump_results(r.json)
 
 if cmd == 'show':
-    event_id = sys.argv[2]
+    event_id = safe_arg(2)
     results = _check(requests.get(STACKTACH + "/stacky/show/%s" % event_id))
     results = results.json
     if len(results) == 0:
@@ -123,7 +144,7 @@ if cmd == 'show':
 
 if cmd == 'watch':
     event_name = ""
-    deployment = None
+    deployment_id = 0
     poll = 2  # seconds
 
     if len(sys.argv) > 2:
@@ -139,9 +160,39 @@ if cmd == 'watch':
         poll = int(sys.argv[4])
     print "Polling every %d seconds" % poll
 
-    last_poll = None
+    signal.signal(signal.SIGINT, signal_handler)
+
+    last = None
     row = 0
     while 1:
+        params = {}
+        if event_name:
+            params['event_name'] = event_name
+        if last:
+            params['since'] = last
+        results = _check(requests.get(STACKTACH + "/stacky/watch/%d" %
+                                      deployment_id, params=params))
+        c, results, last = results.json
+        for r in results:
+            _id, typ, dait, tyme, deployment_name, name, uuid = r
+            if row < 1:
+                print "+" + "+".join(['-' * width for width in c]) + "+"
+                print "|" + "|".join(['#'.center(c[0]), '?',
+                           dait.center(c[2]),
+                           'Deployment'.center(c[3]),
+                           'Event'.center(c[4]),
+                           'UUID'.center(c[5])]) + "|"
+                print "+" + "+".join(['-' * width for width in c]) + "+"
+
+                row = 20
+            print "|" + "|".join([str(_id).center(c[0]),
+                            typ,
+                            tyme.center(c[2]),
+                            deployment_name.center(c[3]),
+                            name.center(c[4]),
+                            uuid.center(c[5])]) + "|"
+
+            row -= 1
         time.sleep(poll)
 
 
