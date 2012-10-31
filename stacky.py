@@ -114,8 +114,7 @@ if cmd == 'uuid':
 if cmd == 'timings':
     name = safe_arg(2)
     params = {'name' : name}
-    r = _check(requests.get(STACKTACH + "/stacky/timings/%s" % name,
-                            params=params))
+    r = _check(requests.get(STACKTACH + "/stacky/timings", params=params))
     dump_results(r.json)
 
 if cmd == 'summary':
