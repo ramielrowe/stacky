@@ -45,7 +45,9 @@ def get_deployments():
 
 
 def show_timings_for_uuid(uuid):
-    pass
+    params = {'uuid' : uuid}
+    r = _check(requests.get(STACKTACH + "/stacky/timings/uuid", params=params))
+    return r.json
 
 
 def related_to_uuid(uuid):
