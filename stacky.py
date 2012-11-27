@@ -30,29 +30,29 @@ def _check(response):
 
 
 def get_event_names():
-    r = _check(requests.get(STACKTACH + "/stacky/events"))
+    r = _check(requests.get(STACKTACH + "/stacky/events/"))
     return r.json
 
 
 def get_host_names():
-    r = _check(requests.get(STACKTACH + "/stacky/hosts"))
+    r = _check(requests.get(STACKTACH + "/stacky/hosts/"))
     return r.json
 
 
 def get_deployments():
-    r = _check(requests.get(STACKTACH + "/stacky/deployments"))
+    r = _check(requests.get(STACKTACH + "/stacky/deployments/"))
     return r.json
 
 
 def show_timings_for_uuid(uuid):
     params = {'uuid' : uuid}
-    r = _check(requests.get(STACKTACH + "/stacky/timings/uuid", params=params))
+    r = _check(requests.get(STACKTACH + "/stacky/timings/uuid/", params=params))
     return r.json
 
 
 def related_to_uuid(uuid):
     params = {'uuid' : uuid}
-    r = _check(requests.get(STACKTACH + "/stacky/uuid", params=params))
+    r = _check(requests.get(STACKTACH + "/stacky/uuid/", params=params))
     return r.json
 
 
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     if cmd == 'timings':
         name = safe_arg(2)
         params = {'name' : name}
-        r = _check(requests.get(STACKTACH + "/stacky/timings", params=params))
+        r = _check(requests.get(STACKTACH + "/stacky/timings/", params=params))
         dump_results(r.json)
 
     if cmd == 'summary':
@@ -127,12 +127,13 @@ if __name__ == '__main__':
     if cmd == 'request':
         request_id = safe_arg(2)
         params = {'request_id': request_id}
-        r = _check(requests.get(STACKTACH + "/stacky/request", params=params))
+        r = _check(requests.get(STACKTACH + "/stacky/request/", params=params))
         dump_results(r.json)
 
     if cmd == 'show':
         event_id = safe_arg(2)
-        results = _check(requests.get(STACKTACH + "/stacky/show/%s" % event_id))
+        results = _check(requests.get(STACKTACH + "/stacky/show/%s/" %
+                                                                    event_id))
         results = results.json
         if len(results) == 0:
             print "Event %d not found" % event_id
@@ -172,7 +173,7 @@ if __name__ == '__main__':
                 params['event_name'] = event_name
             if last:
                 params['since'] = last
-            results = _check(requests.get(STACKTACH + "/stacky/watch/%d" %
+            results = _check(requests.get(STACKTACH + "/stacky/watch/%d/" %
                                           deployment_id, params=params))
             c, results, last = results.json
             for r in results:
@@ -199,5 +200,11 @@ if __name__ == '__main__':
 
 
     if cmd == 'kpi':
-        r = _check(requests.get(STACKTACH + "/stacky/kpi"))
+        url = "/stacky/kpi/"
+        if len(sys.argv) > 2:
+            tenant_id = sys.argv[2]
+            url += "%s/" % tenant_id
+            print "Filtering by Tenant ID:", tenant_id
+
+        r = _check(requests.get(STACKTACH + url))
         dump_results(r.json)
