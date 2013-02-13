@@ -30,10 +30,10 @@ def _check(response):
 
 
 def get_json(request):
-    if isinstance(request.json, list):
-        return request.json
-    else:
-        return request.json()
+    result = request.json
+    if isinstance(result, list):
+        return result
+    return result()
 
 
 def get_event_names():
@@ -60,6 +60,24 @@ def show_timings_for_uuid(uuid):
 def related_to_uuid(uuid):
     params = {'uuid' : uuid}
     r = _check(requests.get(STACKTACH + "/stacky/uuid/", params=params))
+    return get_json(r)
+
+
+def list_usage_launches(filter = None):
+    r = _check(requests.get(STACKTACH + "/stacky/usage/launches",
+                            params=filter))
+    return get_json(r)
+
+
+def list_usage_deletes(filter = None):
+    r = _check(requests.get(STACKTACH + "/stacky/usage/deletes",
+                            params=filter))
+    return get_json(r)
+
+
+def list_usage_exists(filter = None):
+    r = _check(requests.get(STACKTACH + "/stacky/usage/exists",
+                            params=filter))
     return get_json(r)
 
 
@@ -215,3 +233,16 @@ if __name__ == '__main__':
 
         r = _check(requests.get(STACKTACH + url))
         dump_results(r)
+
+
+    if cmd == 'usage':
+        sub_cmd = safe_arg(2)
+        filter = {}
+        if len(sys.argv) == 4:
+            filter['instance'] = sys.argv[3]
+        if sub_cmd == 'launches':
+            dump_results(list_usage_launches(filter))
+        elif sub_cmd == 'deletes':
+            dump_results(list_usage_deletes(filter))
+        elif sub_cmd == 'exists':
+            dump_results(list_usage_exists(filter))
