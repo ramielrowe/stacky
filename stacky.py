@@ -29,31 +29,56 @@ def _check(response):
     sys.exit(response.status_code)
 
 
+def get_json(request):
+    result = request.json
+    if isinstance(result, list):
+        return result
+    return result()
+
+
 def get_event_names():
     r = _check(requests.get(STACKTACH + "/stacky/events/"))
-    return r.json
+    return get_json(r)
 
 
 def get_host_names():
     r = _check(requests.get(STACKTACH + "/stacky/hosts/"))
-    return r.json
+    return get_json(r)
 
 
 def get_deployments():
     r = _check(requests.get(STACKTACH + "/stacky/deployments/"))
-    return r.json
+    return get_json(r)
 
 
 def show_timings_for_uuid(uuid):
     params = {'uuid' : uuid}
     r = _check(requests.get(STACKTACH + "/stacky/timings/uuid/", params=params))
-    return r.json
+    return get_json(r)
 
 
 def related_to_uuid(uuid):
     params = {'uuid' : uuid}
     r = _check(requests.get(STACKTACH + "/stacky/uuid/", params=params))
-    return r.json
+    return get_json(r)
+
+
+def list_usage_launches(filter = None):
+    r = _check(requests.get(STACKTACH + "/stacky/usage/launches",
+                            params=filter))
+    return get_json(r)
+
+
+def list_usage_deletes(filter = None):
+    r = _check(requests.get(STACKTACH + "/stacky/usage/deletes",
+                            params=filter))
+    return get_json(r)
+
+
+def list_usage_exists(filter = None):
+    r = _check(requests.get(STACKTACH + "/stacky/usage/exists",
+                            params=filter))
+    return get_json(r)
 
 
 def dump_results(results):
@@ -118,23 +143,23 @@ if __name__ == '__main__':
         name = safe_arg(2)
         params = {'name' : name}
         r = _check(requests.get(STACKTACH + "/stacky/timings/", params=params))
-        dump_results(r.json)
+        dump_results(get_json(r))
 
     if cmd == 'summary':
         r = _check(requests.get(STACKTACH + "/stacky/summary/"))
-        dump_results(r.json)
+        dump_results(get_json(r))
 
     if cmd == 'request':
         request_id = safe_arg(2)
         params = {'request_id': request_id}
         r = _check(requests.get(STACKTACH + "/stacky/request/", params=params))
-        dump_results(r.json)
+        dump_results(get_json(r))
 
     if cmd == 'show':
         event_id = safe_arg(2)
         results = _check(requests.get(STACKTACH + "/stacky/show/%s/" %
                                                                     event_id))
-        results = results.json
+        results = get_json(results)
         if len(results) == 0:
             print "Event %d not found" % event_id
             sys.exit(0)
@@ -175,7 +200,7 @@ if __name__ == '__main__':
                 params['since'] = last
             results = _check(requests.get(STACKTACH + "/stacky/watch/%d/" %
                                           deployment_id, params=params))
-            c, results, last = results.json
+            c, results, last = get_json(results)
             for r in results:
                 _id, typ, dait, tyme, deployment_name, name, uuid = r
                 if row < 1:
@@ -207,4 +232,17 @@ if __name__ == '__main__':
             print "Filtering by Tenant ID:", tenant_id
 
         r = _check(requests.get(STACKTACH + url))
-        dump_results(r.json)
+        dump_results(r)
+
+
+    if cmd == 'usage':
+        sub_cmd = safe_arg(2)
+        filter = {}
+        if len(sys.argv) == 4:
+            filter['instance'] = sys.argv[3]
+        if sub_cmd == 'launches':
+            dump_results(list_usage_launches(filter))
+        elif sub_cmd == 'deletes':
+            dump_results(list_usage_deletes(filter))
+        elif sub_cmd == 'exists':
+            dump_results(list_usage_exists(filter))
