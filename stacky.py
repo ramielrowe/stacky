@@ -30,10 +30,10 @@ def _check(response):
 
 
 def get_json(request):
-    if isinstance(request.json, list):
-        return request.json
-    else:
-        return request.json()
+    result = request.json
+    if isinstance(result, list):
+        return result
+    return result()
 
 
 def get_event_names():
