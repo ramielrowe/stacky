@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+import calendar
+import datetime
+import decimal
+import json
 import os
 import re
 import requests
@@ -11,6 +15,37 @@ import prettytable as pt
 
 
 STACKTACH = os.environ['STACKTACH_URL']
+
+# Stolen from stacktach/datetime_to_decimal.py
+def dt_to_decimal(utc):
+    decimal.getcontext().prec = 30
+    return decimal.Decimal(str(calendar.timegm(utc.utctimetuple()))) + \
+           (decimal.Decimal(str(utc.microsecond)) /
+           decimal.Decimal("1000000.0"))
+
+
+def dt_from_decimal(dec):
+    if dec == None:
+        return "n/a"
+    integer = int(dec)
+    micro = (dec - decimal.Decimal(integer)) * decimal.Decimal(1000000)
+
+    daittyme = datetime.datetime.utcfromtimestamp(integer)
+    return daittyme.replace(microsecond=micro)
+
+
+def sec_to_str(sec):
+    sec = int(sec)
+    if sec < 60:
+        return "%ds" % sec
+    minutes = sec / 60
+    sec = sec % 60
+    if minutes < 60:
+        return "%d:%02ds" % (minutes, sec)
+    hours = minutes / 60
+    minutes = minutes % 60
+    return "%02d:%02d:%02d" % (hours, minutes, sec)
+#-----
 
 
 def signal_handler(signal, frame):
@@ -105,6 +140,13 @@ def safe_arg(index, default=None):
     return sys.argv[index]
 
 
+def formatted_datetime(dt):
+    _date = dt.date()
+    _time = dt.time()
+    return ("%04d-%02d-%02d" % (_date.year, _date.month, _date.day),
+            "%02d:%02d" % (_time.hour, _time.minute))
+
+
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         print """Usage: stacky <command>
@@ -119,6 +161,12 @@ if __name__ == '__main__':
     summary - show summarized timings for all events
     timings - show timings for <event-name> (no .start/.end)
     request - show events with <request id>
+    reports - list all reports created from <start> to <end>
+              All times 24-hr UTC in YYYY-MM-DD HH:MM format.
+              Example: stacky reports 2013-02-28 00:00 2013-02-28 06:00
+                       will return all reports created from midnight to 6am
+                       on Feb 28th.
+    report  - get json for report <id>
     kpi     - crunch KPI's
     hosts   - list all host names"""
         sys.exit(0)
@@ -246,3 +294,62 @@ if __name__ == '__main__':
             dump_results(list_usage_deletes(filter))
         elif sub_cmd == 'exists':
             dump_results(list_usage_exists(filter))
+
+
+    if cmd == 'reports':
+        yesterday = datetime.datetime.utcnow().date() - \
+                                                    datetime.timedelta(days=1)
+
+        rstart = datetime.datetime(year=yesterday.year, month=yesterday.month,
+                                                              day=yesterday.day)
+        rend = rstart + datetime.timedelta(hours=23, minutes=59, seconds=59)
+
+        _date, _time = formatted_datetime(rstart)
+        start_date = safe_arg(2, _date)
+        start_time = safe_arg(3, _time)
+        _date, _time = formatted_datetime(rend)
+        end_date = safe_arg(4, _date)
+        end_time = safe_arg(5, _time)
+
+        parsed = []
+        for _date, _time  in [(start_date, start_time), (end_date, end_time)]:
+            try:
+                d = time.strptime(_date, "%Y-%m-%d")
+                t = time.strptime(_time, "%H:%M")
+                parsed.append(datetime.datetime(
+                                       year=d.tm_year, month=d.tm_mon,
+                                       day=d.tm_mday,
+                                       hour=t.tm_hour, minute=t.tm_min))
+            except Exception, e:
+                print "'%s %s' is in wrong format." % (_date, _time)
+
+        rstart = parsed[0]
+        rend = parsed[1]
+
+        print "Querying for reports created from %s to %s" % (rstart, rend)
+        dstart = dt_to_decimal(rstart)
+        dend = dt_to_decimal(rend)
+
+        url = "/stacky/reports?created_from=%f&created_to=%f" % (dstart, dend)
+        r = _check(requests.get(STACKTACH + url))
+        r = get_json(r)
+        dump_results(r)
+
+
+    if cmd == 'report':
+        report_id = safe_arg(2)
+        url = "/stacky/report/%s" % report_id
+
+        r = _check(requests.get(STACKTACH + url))
+        r = json.loads(r.json)
+
+        metadata = r[0]
+        metadata_report = [['Key', 'Value']]
+        for k, v in metadata.iteritems():
+            metadata_report.append([k, v])
+        print "Report Metadata"
+        dump_results(metadata_report)
+
+        report = r[1:]
+        print "Report Details"
+        dump_results(report)
