@@ -341,15 +341,19 @@ if __name__ == '__main__':
         url = "/stacky/report/%s" % report_id
 
         r = _check(requests.get(STACKTACH + url))
-        r = json.loads(r.json)
+        r = json.loads(r.json())
 
         metadata = r[0]
-        metadata_report = [['Key', 'Value']]
-        for k, v in metadata.iteritems():
-            metadata_report.append([k, v])
-        print "Report Metadata"
-        dump_results(metadata_report)
-
         report = r[1:]
-        print "Report Details"
-        dump_results(report)
+        if metadata.get('raw_text', False):
+            for line in report:
+                print line
+        else:
+            metadata_report = [['Key', 'Value']]
+            for k, v in metadata.iteritems():
+                metadata_report.append([k, v])
+            print "Report Metadata"
+            dump_results(metadata_report)
+
+            print "Report Details"
+            dump_results(report)
