@@ -297,11 +297,10 @@ if __name__ == '__main__':
 
 
     if cmd == 'reports':
-        yesterday = datetime.datetime.utcnow().date() - \
-                                                    datetime.timedelta(days=1)
+        today = datetime.datetime.utcnow().date()
 
-        rstart = datetime.datetime(year=yesterday.year, month=yesterday.month,
-                                                              day=yesterday.day)
+        rstart = datetime.datetime(year=today.year, month=today.month,
+                                                              day=today.day)
         rend = rstart + datetime.timedelta(hours=23, minutes=59, seconds=59)
 
         _date, _time = formatted_datetime(rstart)
