@@ -5,7 +5,7 @@ Command line interface to StackTach (https://github.com/rackspace/stacktach)
 set STACKTACH_URL to point to your StackTach web server.
 
 ## Requires
-sudo pip install requests
+pip install -r pip_requires.txt
 
 ## Help
 ```

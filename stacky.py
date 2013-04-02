@@ -297,11 +297,10 @@ if __name__ == '__main__':
 
 
     if cmd == 'reports':
-        yesterday = datetime.datetime.utcnow().date() - \
-                                                    datetime.timedelta(days=1)
+        today = datetime.datetime.utcnow().date()
 
-        rstart = datetime.datetime(year=yesterday.year, month=yesterday.month,
-                                                              day=yesterday.day)
+        rstart = datetime.datetime(year=today.year, month=today.month,
+                                                              day=today.day)
         rend = rstart + datetime.timedelta(hours=23, minutes=59, seconds=59)
 
         _date, _time = formatted_datetime(rstart)
@@ -341,15 +340,19 @@ if __name__ == '__main__':
         url = "/stacky/report/%s" % report_id
 
         r = _check(requests.get(STACKTACH + url))
-        r = json.loads(r.json)
+        r = json.loads(r.json())
 
         metadata = r[0]
-        metadata_report = [['Key', 'Value']]
-        for k, v in metadata.iteritems():
-            metadata_report.append([k, v])
-        print "Report Metadata"
-        dump_results(metadata_report)
-
         report = r[1:]
-        print "Report Details"
-        dump_results(report)
+        if metadata.get('raw_text', False):
+            for line in report:
+                print line
+        else:
+            metadata_report = [['Key', 'Value']]
+            for k, v in metadata.iteritems():
+                metadata_report.append([k, v])
+            print "Report Metadata"
+            dump_results(metadata_report)
+
+            print "Report Details"
+            dump_results(report)
