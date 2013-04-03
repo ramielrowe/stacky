@@ -146,6 +146,21 @@ def formatted_datetime(dt):
     return ("%04d-%02d-%02d" % (_date.year, _date.month, _date.day),
             "%02d:%02d" % (_time.hour, _time.minute))
 
+def get_reports(from_dt, to_dt):
+    dstart = dt_to_decimal(from_dt)
+    dend = dt_to_decimal(to_dt)
+
+    url = "/stacky/reports?created_from=%f&created_to=%f" % (dstart, dend)
+    r = _check(requests.get(STACKTACH + url))
+    return get_json(r)
+
+
+def get_report(rid):
+    url = "/stacky/report/%s" % report_id
+
+    r = _check(requests.get(STACKTACH + url))
+    return json.loads(r.json())
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -326,12 +341,7 @@ if __name__ == '__main__':
         rend = parsed[1]
 
         print "Querying for reports created from %s to %s" % (rstart, rend)
-        dstart = dt_to_decimal(rstart)
-        dend = dt_to_decimal(rend)
-
-        url = "/stacky/reports?created_from=%f&created_to=%f" % (dstart, dend)
-        r = _check(requests.get(STACKTACH + url))
-        r = get_json(r)
+        r = get_reports(rstart, rend)
         for row in r[1:]:
             for x in range(1, 3):
                 dt = dt_from_decimal(decimal.Decimal(str(row[x])))
@@ -343,10 +353,7 @@ if __name__ == '__main__':
 
     if cmd == 'report':
         report_id = safe_arg(2)
-        url = "/stacky/report/%s" % report_id
-
-        r = _check(requests.get(STACKTACH + url))
-        r = json.loads(r.json())
+        r = get_report(report_id)
 
         metadata = r[0]
         report = r[1:]
