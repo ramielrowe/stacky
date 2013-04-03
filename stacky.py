@@ -332,27 +332,33 @@ if __name__ == '__main__':
         url = "/stacky/reports?created_from=%f&created_to=%f" % (dstart, dend)
         r = _check(requests.get(STACKTACH + url))
         r = get_json(r)
+        for row in r[1:]:
+            for x in range(1, 3):
+                dt = dt_from_decimal(decimal.Decimal(str(row[x])))
+                row[x] = dt.strftime("%b %d %H:%M")
+            dt = dt_from_decimal(decimal.Decimal(str(row[3])))
+            row[3] = dt.strftime("%a %b %d")
         dump_results(r)
 
 
-    if cmd == 'report':
-        report_id = safe_arg(2)
-        url = "/stacky/report/%s" % report_id
+if cmd == 'report':
+    report_id = safe_arg(2)
+    url = "/stacky/report/%s" % report_id
 
-        r = _check(requests.get(STACKTACH + url))
-        r = json.loads(r.json())
+    r = _check(requests.get(STACKTACH + url))
+    r = json.loads(r.json())
 
-        metadata = r[0]
-        report = r[1:]
-        if metadata.get('raw_text', False):
-            for line in report:
-                print line
-        else:
-            metadata_report = [['Key', 'Value']]
-            for k, v in metadata.iteritems():
-                metadata_report.append([k, v])
-            print "Report Metadata"
-            dump_results(metadata_report)
+    metadata = r[0]
+    report = r[1:]
+    if metadata.get('raw_text', False):
+        for line in report:
+            print line
+    else:
+        metadata_report = [['Key', 'Value']]
+        for k, v in metadata.iteritems():
+            metadata_report.append([k, v])
+        print "Report Metadata"
+        dump_results(metadata_report)
 
-            print "Report Details"
-            dump_results(report)
+        print "Report Details"
+        dump_results(report)
