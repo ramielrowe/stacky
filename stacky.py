@@ -332,6 +332,12 @@ if __name__ == '__main__':
         url = "/stacky/reports?created_from=%f&created_to=%f" % (dstart, dend)
         r = _check(requests.get(STACKTACH + url))
         r = get_json(r)
+        for row in r[1:]:
+            for x in range(1, 3):
+                dt = dt_from_decimal(decimal.Decimal(str(row[x])))
+                row[x] = dt.strftime("%b %d %H:%M")
+            dt = dt_from_decimal(decimal.Decimal(str(row[3])))
+            row[3] = dt.strftime("%a %b %d")
         dump_results(r)
 
 
