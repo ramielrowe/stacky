@@ -35,6 +35,9 @@ Usage: stacky <command>
 
 NOTE: *kpi* and *watch* commands are currently disabled. Will be fixed soon.
 
+## Examples
+
+### List event types
 ```
 $ python stacky.py events
 +---------------------------------------+
@@ -66,3 +69,52 @@ $ python stacky.py events
 +---------------------------------------+
 ```
 
+### Lookup Nova instance by UUID
+```
+$ python stacky.py uuid bafe36de-aba8-46e8-9fe7-15b490e4cc01
+Events related to bafe36de-aba8-46e8-9fe7-15b490e4cc01
++----------+---+----------------------------+--------------------+----------------------------------+------------------------------------------------------+----------+----------+----------------------+
+|    #     | ? |            When            |     Deployment     |              Event               |                         Host                         |  State   |  State'  |        Task'         |
++----------+---+----------------------------+--------------------+----------------------------------+------------------------------------------------------+----------+----------+----------------------+
+| 16373586 |   | 2013-04-09 14:31:50.345266 | cellA |     compute.instance.update      |   nova-api.foo.com    | building |   None   |         None         |
+| 16373589 |   | 2013-04-09 14:31:54.211449 | cellB  | scheduler.run_instance.scheduled | nova-scheduler.foo.com |          |          |                      |
+| 16373603 |   | 2013-04-09 14:32:11.773272 | cellB  |     compute.instance.update      |                   computehostA                    | building | building |      scheduling      |
+... (and so on)
+```
+
+### Get details for an event
+Take an event id from the above example and show its details:
+```
+$ python stacky.py show 16373586
++------------+-----------------------------------------------------+
+|    Key     |                        Value                        |
++------------+-----------------------------------------------------+
+|     #      |                       16373586                      |
+|    When    |              2013-04-09 14:31:50.345266             |
+| Deployment |                        cellA                        |
+|  Category  |                     monitor.info                    |
+| Publisher  |                  nova-api.foo.com                   |
+|   State    |                       building                      |
+|   Event    |               compute.instance.update               |
+|  Service   |                         api                         |
+|    Host    |                  nova-api.foo.com                   |
+|    UUID    |         bafe36de-aba8-46e8-9fe7-15b490e4cc01        |
+|   Req ID   |       req-5539174d-0cd9-40d9-a7d5-5aa883c20033      |
++------------+-----------------------------------------------------+
+... (and so on)
+```
+
+### Get all events for request ID
+Take the request id from above and get all the associated events:
+```
+$ python stacky.py request req-5539174d-0cd9-40d9-a7d5-5aa883c20033
++----------+---+----------------------------+--------------------+----------------------------------+------------------------------------------------------+----------+----------+----------------------+
+|    #     | ? |            When            |     Deployment     |              Event               |                         Host                         |  State   |  State'  |        Task'         |
++----------+---+----------------------------+--------------------+----------------------------------+------------------------------------------------------+----------+----------+----------------------+
+| 16373586 |   | 2013-04-09 14:31:50.345266 | cellA |     compute.instance.update      |   nova-api.foo.com    | building |   None   |         None         |
+| 16373587 |   | 2013-04-09 14:31:51.196901 | cellB  |   scheduler.run_instance.start   | nova-scheduler.foo.com |          |          |                      |
+| 16373589 |   | 2013-04-09 14:31:54.211449 | cellB  | scheduler.run_instance.scheduled | nova-scheduler.foo.com |          |          |                      |
+| 16373592 |   | 2013-04-09 14:31:57.497054 | cellB  |    scheduler.run_instance.end    | nova-scheduler.foo.com |          |          |                      |
+| 16373603 |   | 2013-04-09 14:32:11.773272 | cellB  |     compute.instance.update      |                   computehostA                    | building | building |      scheduling      |
+... (and so on)
+```
