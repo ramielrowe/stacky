@@ -162,6 +162,10 @@ def get_report(rid):
     return json.loads(r.json())
 
 
+def _str_to_datetime(str):
+    return datetime.datetime.strptime(str, "%Y-%m-%d %H:%M:%S")
+
+
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         print """Usage: stacky <command>
@@ -204,7 +208,13 @@ if __name__ == '__main__':
 
     if cmd == 'timings':
         name = safe_arg(2)
-        params = {'name' : name}
+        params = {'name': name}
+        if len(sys.argv) >= 4:
+            min_date = _str_to_datetime(safe_arg(3))
+            params['end_when_min'] = dt_to_decimal(min_date)
+        if len(sys.argv) >= 5:
+            max_date = _str_to_datetime(safe_arg(4))
+            params['end_when_max'] = dt_to_decimal(max_date)
         r = _check(requests.get(STACKTACH + "/stacky/timings/", params=params))
         dump_results(get_json(r))
 
